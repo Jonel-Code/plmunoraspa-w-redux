@@ -1,3 +1,9 @@
+## PLMUN ORA (Office of the Registrar Application) SPA (Single Page Application) with Redux
+
+Front end application for handling data from student document request for Registrar Office.
+uses React-redux framework to build the single page application
+
+
 This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
 
 ## Available Scripts
