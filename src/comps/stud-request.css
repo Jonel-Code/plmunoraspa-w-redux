@@ -1,0 +1,18 @@
+.main-card {
+	margin-top: 20px !important;
+}
+
+.noselect {
+	-webkit-touch-callout: none; /* iOS Safari */
+	-webkit-user-select: none; /* Safari */
+	-khtml-user-select: none; /* Konqueror HTML */
+	-moz-user-select: none; /* Firefox */
+	-ms-user-select: none; /* Internet Explorer/Edge */
+}
+
+.selections-area {
+	padding: 5px;
+	max-height: 200px !important;
+	overflow-y: auto;
+	overflow-x: hidden;
+}

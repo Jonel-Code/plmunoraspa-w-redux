@@ -1,0 +1,40 @@
+.portal {
+    width: 100%;
+    height: 100%;
+}
+
+.column-size {
+    max-height: 80%;
+}
+
+.admin-content {
+    padding: 0 !important;
+    height: 80%;
+    min-height: 500px;
+    background-color: rgba(255, 255, 255, 0.5) !important;
+}
+
+.admin-bg-color {
+    background: url(".././assets/plmun_image.jpg") no-repeat !important;
+    background-size: cover !important;
+}
+
+.admin-header {
+    padding: 5px;
+    background-color: rgba(255, 255, 255, 0.9) !important;
+}
+
+.blur-bg {
+    background-color: rgba(255, 255, 255, 0.5) !important;
+}
+
+.main-card-admin {
+    height: 100% !important;
+    width: 100% !important;
+    min-width: 820px !important;
+    background-color: transparent !important;
+}
+
+.no-shadow {
+    box-shadow: none !important;
+}

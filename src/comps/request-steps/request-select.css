@@ -1,0 +1,22 @@
+.req-container {
+	position: relative;
+	background: #fff;
+	box-shadow: 0 1px 2px #ccc;
+	/* width: 90%; */
+}
+
+.center-grid {
+	align-content: center;
+	text-align: center;
+	margin: 0 auto;
+}
+
+.ui.card.slick {
+	margin: 0 auto !important;
+	/* padding: 20px !important; */
+}
+
+.selection-container {
+	max-height: 450px !important;
+	overflow: auto;
+}
