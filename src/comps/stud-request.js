@@ -1,7 +1,7 @@
 import React, { Component, Fragment } from 'react';
 import { connect } from 'react-redux';
-import { Icon, Step, Container, Tab, Segment, Table, Header } from 'semantic-ui-react';
 import Slider from 'react-slick';
+import { Icon, Step, Container, Tab, Segment, Table, Header, Button, Popup } from 'semantic-ui-react';
 import './stud-request.css';
 
 import PlmunHeader from './header';
@@ -13,6 +13,9 @@ import ReviewAndSubmit from './request-steps/review-and-submit';
 import ViewPrintPdfForm from './request-steps/view-print-pdf-form';
 // import plmun_logo from '../assets/plmun-logo.png';
 
+import { fetchReqListing } from '../redux/actions/fetch-student-req-listing';
+import { apiDeleteStudRequest } from '../redux/actions/delete-student-req';
+
 const MAXSTEPS = 3;
 
 class StudRequest extends Component {
@@ -21,16 +24,16 @@ class StudRequest extends Component {
 		this.student_name = '';
 		this.student_id = '';
 		this.state = {
-			req_forms: [],
-			available_forms: [
+			req_forms       : [],
+			available_forms : [
 				{ id: 110, abreviation: 'cog', desc: 'Certificate of Grades', price: 30 },
 				{ id: 111, abreviation: 'tor', desc: 'Transcript Of Records', price: 250 },
 				{ id: 112, abreviation: 'com', desc: 'Certificate of Matriculation', price: 50 },
 				{ id: 113, abreviation: 'Honorable Dismissal', desc: 'Honorable Dismissal', price: 700 },
 				{ id: 114, abreviation: 'coe', desc: 'Certificate of Enrollment', price: 50 },
 			],
-			current_step: 0,
-			pdf_link: '',
+			current_step    : 0,
+			pdf_link        : '',
 		};
 	}
 
@@ -75,12 +78,12 @@ class StudRequest extends Component {
 
 	get slider_settings () {
 		return {
-			dots: false,
-			arrows: false,
-			accessibility: false,
-			draggable: false,
-			infinite: false,
-			beforeChange: (current, next) => {
+			dots          : false,
+			arrows        : false,
+			accessibility : false,
+			draggable     : false,
+			infinite      : false,
+			beforeChange  : (current, next) => {
 				this.update_current_step_slide(next);
 			},
 		};
@@ -104,11 +107,13 @@ class StudRequest extends Component {
 	}
 
 	get request_table () {
+		const requests = this.props.student_data.requests;
+		console.log('request_table requests', requests);
 		return (
 			<Fragment>
 				<Header as='h2' textAlign='left' inverted>
 					My Request
-					<Header.Subheader>Request count: 1</Header.Subheader>
+					<Header.Subheader />
 				</Header>
 				<Table celled selectable>
 					<Table.Header>
@@ -116,22 +121,68 @@ class StudRequest extends Component {
 							<Table.HeaderCell>ID</Table.HeaderCell>
 							<Table.HeaderCell>Documents</Table.HeaderCell>
 							<Table.HeaderCell>Date Requested</Table.HeaderCell>
-							<Table.HeaderCell>Price</Table.HeaderCell>
+							<Table.HeaderCell>Price (Pesos)</Table.HeaderCell>
 							<Table.HeaderCell>Accounting Status</Table.HeaderCell>
 							<Table.HeaderCell>Registrar Status</Table.HeaderCell>
+							<Table.HeaderCell />
 						</Table.Row>
 					</Table.Header>
 
 					<Table.Body>
-						<Table.Row>
-							<Table.Cell>001</Table.Cell>
-							<Table.Cell>COM, COG</Table.Cell>
-							<Table.Cell>None</Table.Cell>
-							<Table.Cell>None</Table.Cell>
-							<Table.Cell positive>Paid</Table.Cell>
-							<Table.Cell negative>Unclaimed</Table.Cell>
-						</Table.Row>
+						{requests.map((val, i) => (
+							<Table.Row key={i}>
+								<Table.Cell>{val.requestId}</Table.Cell>
+								<Table.Cell>{val.description}</Table.Cell>
+								<Table.Cell>{val.dateOfRequest}</Table.Cell>
+								<Table.Cell>{val.total}</Table.Cell>
+								<Table.Cell negative={!val.treasuryAccId} positive={val.treasuryAccId}>
+									{
+										val.treasuryAccId ? 'Paid' :
+										'Unpaid'}
+								</Table.Cell>
+								<Table.Cell negative={!val.registrarAccId} positive={val.registrarAccId}>
+									{
+										val.registrarAccId ? 'Claimed' :
+										'Unclaimed'}
+								</Table.Cell>
+								<Table.Cell>
+									<Popup
+										content={
+
+												val.registrarAccId || val.registrarAccId ? 'Cannot Delete Request' :
+												'Delete Request'
+										}
+										trigger={
+											<Button
+												negative
+												circular
+												icon='trash alternate'
+												disabled={val.registrarAccId || val.registrarAccId}
+												onClick={() => {
+													this.deleteRequest(val.requestId);
+												}}
+											/>
+										}
+									/>
+								</Table.Cell>
+							</Table.Row>
+						))}
 					</Table.Body>
+					<Table.Footer>
+						<Table.Row>
+							<Table.HeaderCell />
+							<Table.HeaderCell>{requests.length} Requests</Table.HeaderCell>
+							<Table.HeaderCell />
+							<Table.HeaderCell />
+							<Table.HeaderCell>
+								{requests.filter((val) => val.registrarAccId).length} Paid
+							</Table.HeaderCell>
+							<Table.HeaderCell>
+								{requests.filter((val) => val.registrarAccId).length} Claimed
+							</Table.HeaderCell>
+							<Table.HeaderCell />
+						</Table.Row>
+					</Table.Footer>
 				</Table>
 			</Fragment>
 		);
@@ -139,11 +190,11 @@ class StudRequest extends Component {
 
 	get request_form_data () {
 		return {
-			name: this.student_name.trim(),
-			sid: this.student_id.trim(),
-			to_request: this.state.req_forms,
-			onNext: this.handle_submit_next,
-			onBack: this.handle_back,
+			name       : this.student_name.trim(),
+			sid        : this.student_id.trim(),
+			to_request : this.state.req_forms,
+			onNext     : this.handle_submit_next,
+			onBack     : this.handle_back,
 		};
 	}
 
@@ -155,12 +206,12 @@ class StudRequest extends Component {
 		const { current_step } = this.state;
 		return [
 			{
-				menuItem: 'My Document Requests',
-				render: () => <Tab.Pane style={this.base_pane_style}>{this.request_table}</Tab.Pane>,
+				menuItem : 'My Document Requests',
+				render   : () => <Tab.Pane style={this.base_pane_style}>{this.request_table}</Tab.Pane>,
 			},
 			{
-				menuItem: 'New Document Request',
-				render: () => {
+				menuItem : 'New Document Request',
+				render   : () => {
 					return (
 						<Tab.Pane style={this.base_pane_style}>
 							<Container textAlign='center'>{StepProgress(current_step)}</Container>
@@ -172,9 +223,28 @@ class StudRequest extends Component {
 		];
 	}
 
-	reset_current_Set = () => {
+	componentDidMount () {
+		this.fetchReqListing();
+	}
+
+	reset_current_Set = (e, data) => {
 		this.setState({ current_step: 0 });
+		if (data.activeIndex === 0) {
+			this.fetchReqListing();
+		}
 	};
+
+	fetchReqListing () {
+		this.props.dispatch(fetchReqListing(this.props.student_data.id));
+	}
+
+	deleteRequest (reqId) {
+		this.props.dispatch(
+			apiDeleteStudRequest(reqId, () => {
+				this.fetchReqListing();
+			}),
+		);
+	}
 
 	render () {
 		console.log('stud - req props', this.props);
@@ -186,12 +256,12 @@ class StudRequest extends Component {
 					<Tab
 						style={{ marginTop: '1em' }}
 						menu={{
-							vertical: true,
-							style: { backgroundColor: '#192736' },
-							inverted: true,
-							fluid: true,
-							tabular: false,
-							pointing: true,
+							vertical : true,
+							style    : { backgroundColor: '#192736' },
+							inverted : true,
+							fluid    : true,
+							tabular  : false,
+							pointing : true,
 						}}
 						panes={this.tab_content}
 						onTabChange={this.reset_current_Set}
@@ -238,7 +308,7 @@ const StepProgress = (current_step = 0, max_step = MAXSTEPS) => (
 function mapStateToProps (state){
 	// console.log('state', state);
 	return {
-		student_data: { ...state.studentDataReducers.student_data },
+		student_data : { ...state.studentDataReducers.student_data },
 	};
 }
 

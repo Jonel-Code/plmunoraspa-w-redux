@@ -26,8 +26,8 @@ function PrivateRoute ({ redirect_to, component: Component, authed, ...rest }){
 class App extends Component {
 	show_swal = () => {
 		swal({
-			title: 'Swal test',
-			text: 'simple test usage of swal',
+			title : 'Swal test',
+			text  : 'simple test usage of swal',
 		});
 	};
 
@@ -70,7 +70,7 @@ class App extends Component {
 
 function mapStateToProps (state){
 	return {
-		current_user: { ...state.userDataReducers.current_user },
+		current_user : { ...state.userDataReducers.current_user },
 	};
 }
 
