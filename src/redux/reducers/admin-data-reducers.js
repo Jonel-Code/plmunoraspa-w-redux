@@ -9,6 +9,9 @@ import {
 	ADMIN_API_CALL_UPDATE_DOCUMENT,
 	ADMIN_API_CALL_DELETE_DOCUMENT,
 	ADMIN_API_CALL_CREATE_ACCOUNT,
+	ADMIN_API_CALL_GET_ALL_REQUEST,
+	ADMIN_API_CALL_APPROVE_REQUEST,
+	ADMIN_API_CALL_REMOVE_APPROVE_REQUEST,
 } from '../actions/action-types';
 import { save_to_local_store, get_from_local_store } from '../helper/save-to-local-store';
 import { open_swal, close_swal, custom_message_swal } from './../../comps/util/custom-swal';
@@ -20,13 +23,25 @@ const initialState = get_from_local_store(admin_data_reducer_key) || {
 		name          : '',
 		id            : '',
 		office        : '',
-		account_id    : '',
+		eid           : '',
 		requests_list : [],
 	},
 
 	admin_api_call : {
-		running  : false,
-		response : {},
+		running        : false,
+		response       : {},
+		requestListing : [
+			{
+				requestId      : '',
+				dateOfRequest  : '',
+				titles         : '',
+				description    : '',
+				total          : 0,
+				hash_key       : '',
+				registrarAccId : '',
+				treasuryAccId  : '',
+			},
+		],
 	},
 };
 function adminDataReducers (state = initialState, action){
@@ -129,6 +144,28 @@ function adminDataReducers (state = initialState, action){
 				window.location.reload();
 			});
 			break;
+
+		case ADMIN_API_CALL_GET_ALL_REQUEST:
+			new_state = Object.assign({}, state, {
+				...state,
+				admin_api_call : { ...state.admin_api_call, running: false, requestListing: action.payload },
+			});
+			break;
+
+		case ADMIN_API_CALL_APPROVE_REQUEST:
+			new_state = Object.assign({}, state, {
+				...state,
+				admin_api_call : { ...state.admin_api_call, running: false },
+			});
+			break;
+
+		case ADMIN_API_CALL_REMOVE_APPROVE_REQUEST:
+			new_state = Object.assign({}, state, {
+				...state,
+				admin_api_call : { ...state.admin_api_call, running: false },
+			});
+			break;
+
 		default:
 			break;
 	}

@@ -135,12 +135,32 @@ class StudRequest extends Component {
 								<Table.Cell>{val.description}</Table.Cell>
 								<Table.Cell>{val.dateOfRequest}</Table.Cell>
 								<Table.Cell>{val.total}</Table.Cell>
-								<Table.Cell negative={!val.treasuryAccId} positive={val.treasuryAccId}>
+								<Table.Cell
+									negative={
+
+											!val.treasuryAccId ? true :
+											false
+									}
+									positive={
+
+											val.treasuryAccId ? true :
+											false
+									}>
 									{
 										val.treasuryAccId ? 'Paid' :
 										'Unpaid'}
 								</Table.Cell>
-								<Table.Cell negative={!val.registrarAccId} positive={val.registrarAccId}>
+								<Table.Cell
+									negative={
+
+											!val.registrarAccId ? true :
+											false
+									}
+									positive={
+
+											val.registrarAccId ? true :
+											false
+									}>
 									{
 										val.registrarAccId ? 'Claimed' :
 										'Unclaimed'}

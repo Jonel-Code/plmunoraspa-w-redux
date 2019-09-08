@@ -1,14 +1,32 @@
 import React, { Component, Fragment } from 'react';
 import { connect } from 'react-redux';
 
-import { Segment, Tab, Form, Dropdown, Container, Header, Button, Table, Popup } from 'semantic-ui-react';
+import {
+	Pagination,
+	Icon,
+	Input,
+	Segment,
+	Tab,
+	Form,
+	Dropdown,
+	Container,
+	Header,
+	Button,
+	Table,
+	Popup,
+} from 'semantic-ui-react';
 import './admin-portal.css';
 import PlmunHeader from './header';
 
 import { apiDocListFetch } from '../redux/actions/document-fetch';
 
 import { apiDeleteDocument, apiCreateDocument, apiUpdateDocument } from '../redux/actions/create-document';
-import { apiCreateAdmin } from '../redux/actions/admin-actions';
+import {
+	apiCreateAdmin,
+	apiFetchAllRequest,
+	apiApproveAdmin,
+	apiRemoveApproveAdmin,
+} from '../redux/actions/admin-actions';
 
 const office_selection = [
 	{
@@ -40,6 +58,10 @@ class AdminPortal extends Component {
 				email      : '',
 				office     : '',
 			},
+			requestPanel : {
+				currentPage : 1,
+				searchValue : '',
+			},
 		};
 	}
 
@@ -52,7 +74,7 @@ class AdminPortal extends Component {
 		return [
 			{
 				menuItem : 'Student Requests',
-				render   : () => <Tab.Pane style={this.base_pane_style}>{this.studentRequestsListing}</Tab.Pane>,
+				render   : () => <Tab.Pane style={this.base_pane_style}>{this.requestListing}</Tab.Pane>,
 			},
 			{
 				menuItem : 'Available Documents',
@@ -68,10 +90,6 @@ class AdminPortal extends Component {
 				} :
 				{},
 		];
-	}
-
-	get studentRequestsListing () {
-		return <Fragment>student request listing</Fragment>;
 	}
 
 	handleDocumentFormChange = (e, { name, value }) =>
@@ -106,6 +124,21 @@ class AdminPortal extends Component {
 		this.props.dispatch(
 			apiDocListFetch(() => {
 				this.cancelEdit();
+			}),
+		);
+	}
+
+	reloadStudentRequestListing (resetRequestPanel = true) {
+		this.props.dispatch(
+			apiFetchAllRequest(() => {
+				if (resetRequestPanel) {
+					this.setState({
+						requestPanel : {
+							currentPage : 1,
+							searchValue : '',
+						},
+					});
+				}
 			}),
 		);
 	}
@@ -274,6 +307,7 @@ class AdminPortal extends Component {
 		const { name, employeeId, email, office } = this.state.newAdminForm;
 		this.props.dispatch(apiCreateAdmin(name, employeeId, email, office));
 	}
+
 	newAdminForm () {
 		const { name, employeeId, email, office } = this.state.newAdminForm;
 		return (
@@ -333,30 +367,207 @@ class AdminPortal extends Component {
 		);
 	}
 
+	handlePaginationChange = (e, { activePage }) =>
+		this.setState({ requestPanel: { ...this.state.requestPanel, currentPage: activePage } });
+
+	handleInputSearchChange = (e, { value }) => {
+		console.log(value);
+		this.setState({ requestPanel: { ...this.state.requestPanel, searchValue: value } });
+	};
+
+	handleApproveRequest (requestId, isRemoveApproval = false) {
+		const { name, eid } = this.props.admin_data;
+		if (!isRemoveApproval) {
+			this.props.dispatch(
+				apiApproveAdmin(name, eid, requestId, () => {
+					this.reloadStudentRequestListing(false);
+				}),
+			);
+		}
+		else {
+			this.props.dispatch(
+				apiRemoveApproveAdmin(name, eid, requestId, () => {
+					this.reloadStudentRequestListing(false);
+				}),
+			);
+		}
+	}
+
+	get requestListing () {
+		const { requestListing } = this.props.admin_api_call;
+		const { office } = this.props.admin_data;
+		const { currentPage, searchValue } = this.state.requestPanel;
+		const isRegistrar = office === 'registrar';
+		const isTresury = office === 'treasury';
+		const maxItemPerPage = 5;
+		const itemToShowFirstIndex = (currentPage - 1) * maxItemPerPage;
+		const searchFiltered = requestListing.filter((x) =>
+			x.requestId.toLowerCase().includes(searchValue.toLowerCase()),
+		);
+		const itemsToShow = searchFiltered
+			.slice()
+			.sort((a, b) => Number(b.requestId) - Number(a.requestId))
+			.filter((x, i) => i >= itemToShowFirstIndex && i < itemToShowFirstIndex + maxItemPerPage);
+		const totalPages = searchFiltered.length / maxItemPerPage;
+		console.log('searchValue', searchValue);
+		console.log('itemsToShow', itemsToShow);
+		console.log('currentPage', currentPage);
+		console.log('totalPages', totalPages);
+		return (
+			<Fragment>
+				<Container textAlign='left'>
+					<Header as='h2' textAlign='left' inverted>
+						Student Requests
+						<Header.Subheader />
+					</Header>
+				</Container>
+				<Container textAlign='left'>
+					<Input
+						onChange={this.handleInputSearchChange}
+						fluid
+						icon={<Icon color='blue' name='search' inverted circular link />}
+						placeholder='Search Request ID...'
+					/>
+				</Container>
+				<Container textAlign='center' style={{ margin: '1em 0 1em 0' }}>
+					<Pagination
+						activePage={currentPage}
+						totalPages={totalPages}
+						onPageChange={this.handlePaginationChange}
+					/>
+				</Container>
+				<Table celled selectable>
+					<Table.Header>
+						<Table.Row>
+							<Table.HeaderCell>ID</Table.HeaderCell>
+							<Table.HeaderCell>Student ID</Table.HeaderCell>
+							<Table.HeaderCell>Documents</Table.HeaderCell>
+							<Table.HeaderCell>Date Requested</Table.HeaderCell>
+							<Table.HeaderCell>Price (Pesos)</Table.HeaderCell>
+							<Table.HeaderCell>Accounting Action</Table.HeaderCell>
+							<Table.HeaderCell>Registrar Action</Table.HeaderCell>
+						</Table.Row>
+					</Table.Header>
+					<Table.Body>
+						{itemsToShow.map((val, i) => (
+							<Table.Row key={i}>
+								<Table.Cell>{val.requestId}</Table.Cell>
+								<Table.Cell>{val.studentId}</Table.Cell>
+								<Table.Cell>{val.description}</Table.Cell>
+								<Table.Cell>{val.dateOfRequest}</Table.Cell>
+								<Table.Cell>{val.total}</Table.Cell>
+								<Table.Cell style={{ textAlign: 'center' }}>
+									<Popup
+										content={
+
+												!val.treasuryAccId ? 'Click to update the status of request' :
+												'Cannot Undo the update'
+										}
+										trigger={
+											<Button
+												negative={
+
+														val.treasuryAccId ? true :
+														false
+												}
+												positive={
+
+														!val.treasuryAccId ? true :
+														false
+												}
+												circular
+												content={
+
+														val.treasuryAccId ? 'Undo Payment' :
+														'Paid'
+												}
+												disabled={
+
+														isRegistrar ? true :
+														val.registrarAccId ? true :
+														false
+												}
+												onClick={() => {
+													this.handleApproveRequest(val.requestId, val.treasuryAccId);
+												}}
+											/>
+										}
+									/>
+								</Table.Cell>
+								<Table.Cell style={{ textAlign: 'center' }}>
+									<Popup
+										content={
+
+												!val.registrarAccId ? 'Click to update the status of request' :
+												!val.treasuryAccId ? 'Cannot Claim unpaid Requests' :
+												'Undo the update'
+										}
+										trigger={
+											<Button
+												negative={
+
+														val.registrarAccId ? true :
+														false
+												}
+												positive={
+
+														!val.registrarAccId ? true :
+														false
+												}
+												circular
+												content={
+
+														val.registrarAccId ? 'Undo Claim' :
+														'Claim'
+												}
+												disabled={
+
+														isTresury ? true :
+														val.registrarAccId ? false :
+														!val.treasuryAccId
+												}
+												onClick={() => {
+													this.handleApproveRequest(val.requestId, val.registrarAccId);
+												}}
+											/>
+										}
+									/>
+								</Table.Cell>
+							</Table.Row>
+						))}
+					</Table.Body>
+					<Table.Footer>
+						<Table.Row>
+							<Table.HeaderCell />
+							<Table.HeaderCell />
+							<Table.HeaderCell>
+								<b>
+									Showing {itemsToShow.length} of {requestListing.length} Requests
+								</b>
+							</Table.HeaderCell>
+							<Table.HeaderCell />
+							<Table.HeaderCell />
+							<Table.HeaderCell />
+							<Table.HeaderCell />
+						</Table.Row>
+					</Table.Footer>
+				</Table>
+			</Fragment>
+		);
+	}
+
 	componentDidMount () {}
 
 	componentWillMount () {
 		console.log('componentWillMount');
 		this.props.dispatch(apiDocListFetch());
+		this.reloadStudentRequestListing();
 		this.reset_current_Set();
 	}
 
 	reset_current_Set = () => {
-		this.setState({
-			documentForm : {
-				title       : '',
-				description : '',
-				price       : '',
-				documentId  : -1,
-				isEdit      : false,
-			},
-			newAdminForm : {
-				name       : '',
-				employeeId : '',
-				email      : '',
-				office     : '',
-			},
-		});
+		this.props.dispatch(apiDocListFetch());
+		this.reloadStudentRequestListing();
 	};
 
 	render () {
