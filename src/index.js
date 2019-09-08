@@ -8,6 +8,10 @@ import { Provider } from 'react-redux';
 import store from './redux/store/index';
 
 // console.log('store', store.getState());
+console.log('process.env.NODE_ENV', process.env.NODE_ENV);
+if (process.env.NODE_ENV === 'production') {
+	console.log = () => {};
+}
 
 ReactDOM.render(
 	<Provider store={store}>

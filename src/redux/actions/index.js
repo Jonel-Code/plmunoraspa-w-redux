@@ -3,8 +3,8 @@ import * as at from './action-types';
 import service from '../../services/base-service';
 
 export const USER_TYPE_ENUM = {
-	admin: 'admin',
-	student: 'student',
+	admin   : 'admin',
+	student : 'student',
 };
 
 export function studentLogin (payload){
@@ -28,9 +28,9 @@ export function apiAuthenticateUser (username, password, on_auth_accept = () => 
 		return service
 			.getRestClient()
 			.get('student-login', {
-				params: {
-					username: username,
-					password: password,
+				params : {
+					username : username,
+					password : password,
 				},
 			})
 			.then((response) => {
@@ -38,10 +38,10 @@ export function apiAuthenticateUser (username, password, on_auth_accept = () => 
 				dispatch(studentLogin(response.data));
 				dispatch(
 					authenticateUser({
-						user_type: USER_TYPE_ENUM.student,
-						is_authenticated: true,
-						other_data: {},
-						login_failed: false,
+						user_type        : USER_TYPE_ENUM.student,
+						is_authenticated : true,
+						other_data       : {},
+						login_failed     : false,
 					}),
 				);
 				on_auth_accept();
@@ -49,10 +49,10 @@ export function apiAuthenticateUser (username, password, on_auth_accept = () => 
 			.catch((err) => {
 				dispatch(
 					authenticateUser({
-						user_type: USER_TYPE_ENUM.student,
-						is_authenticated: false,
-						other_data: {},
-						login_failed: true,
+						user_type        : USER_TYPE_ENUM.student,
+						is_authenticated : false,
+						other_data       : {},
+						login_failed     : true,
 					}),
 				);
 				console.log('err', err);
@@ -66,9 +66,9 @@ export function apiAuthenticateAdmin (username, password, on_auth_accept = () =>
 		return service
 			.getRestClient()
 			.get('admin-login', {
-				params: {
-					username: username,
-					password: password,
+				params : {
+					username : username,
+					password : password,
 				},
 			})
 			.then((response) => {
@@ -76,10 +76,10 @@ export function apiAuthenticateAdmin (username, password, on_auth_accept = () =>
 				dispatch(adminLogin(response.data));
 				dispatch(
 					authenticateUser({
-						user_type: USER_TYPE_ENUM.admin,
-						is_authenticated: true,
-						other_data: {},
-						login_failed: false,
+						user_type        : USER_TYPE_ENUM.admin,
+						is_authenticated : true,
+						other_data       : {},
+						login_failed     : false,
 					}),
 				);
 				on_auth_accept();
@@ -87,10 +87,10 @@ export function apiAuthenticateAdmin (username, password, on_auth_accept = () =>
 			.catch((err) => {
 				dispatch(
 					authenticateUser({
-						user_type: USER_TYPE_ENUM.admin,
-						is_authenticated: false,
-						other_data: {},
-						login_failed: true,
+						user_type        : USER_TYPE_ENUM.admin,
+						is_authenticated : false,
+						other_data       : {},
+						login_failed     : true,
 					}),
 				);
 				console.log('err', err);

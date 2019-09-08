@@ -7,6 +7,9 @@ import PlmunHeader from './header';
 
 import { apiDocListFetch } from '../redux/actions/document-fetch';
 
+import { apiDeleteDocument, apiCreateDocument, apiUpdateDocument } from '../redux/actions/create-document';
+import { apiCreateAdmin } from '../redux/actions/admin-actions';
+
 const office_selection = [
 	{
 		key   : 'registrar',
@@ -28,6 +31,8 @@ class AdminPortal extends Component {
 				title       : '',
 				description : '',
 				price       : '',
+				documentId  : -1,
+				isEdit      : false,
 			},
 			newAdminForm : {
 				name       : '',
@@ -43,6 +48,7 @@ class AdminPortal extends Component {
 	}
 
 	get tab_content () {
+		const { account_type } = this.props.admin_data;
 		return [
 			{
 				menuItem : 'Student Requests',
@@ -52,12 +58,15 @@ class AdminPortal extends Component {
 				menuItem : 'Available Documents',
 				render   : () => <Tab.Pane style={this.base_pane_style}>{this.documentForm()}</Tab.Pane>,
 			},
-			{
-				menuItem : 'New Admin Account',
-				render   : () => {
-					return <Tab.Pane style={this.base_pane_style}>{this.newAdminForm()}</Tab.Pane>;
-				},
-			},
+
+
+				account_type === 'admin' ? {
+					menuItem : 'New Admin Account',
+					render   : () => {
+						return <Tab.Pane style={this.base_pane_style}>{this.newAdminForm()}</Tab.Pane>;
+					},
+				} :
+				{},
 		];
 	}
 
@@ -65,16 +74,81 @@ class AdminPortal extends Component {
 		return <Fragment>student request listing</Fragment>;
 	}
 
-	handleDocumentFormChange = (e, { name, value }) => this.setState({ documentForm: { [name]: value } });
+	handleDocumentFormChange = (e, { name, value }) =>
+		this.setState({ documentForm: { ...this.state.documentForm, [name]: value } });
+
+	editDocument (documentId, title, description, price) {
+		console.log('document id', documentId);
+		this.setState({
+			documentForm : {
+				title       : title,
+				description : description,
+				price       : price,
+				documentId  : documentId,
+				isEdit      : true,
+			},
+		});
+	}
+
+	cancelEdit () {
+		this.setState({
+			documentForm : {
+				title       : '',
+				description : '',
+				price       : '',
+				documentId  : -1,
+				isEdit      : false,
+			},
+		});
+	}
+
+	reloadDocumentListing () {
+		this.props.dispatch(
+			apiDocListFetch(() => {
+				this.cancelEdit();
+			}),
+		);
+	}
+
+	deleteDocument (documentId) {
+		// call update or add api call
+		this.props.dispatch(
+			apiDeleteDocument(documentId, () => {
+				this.reloadDocumentListing();
+			}),
+		);
+	}
+
+	submitDocumentForm () {
+		// call update or add api call
+		const { documentId, title, description, price, isEdit } = this.state.documentForm;
+
+		console.log('this.state.documentForm', this.state.documentForm);
+		if (isEdit) {
+			this.props.dispatch(
+				apiUpdateDocument(documentId, title, description, price, () => {
+					this.reloadDocumentListing();
+				}),
+			);
+		}
+		else {
+			this.props.dispatch(
+				apiCreateDocument(title, description, price, () => {
+					this.reloadDocumentListing();
+				}),
+			);
+		}
+	}
 
 	documentForm () {
-		let { title, description, price } = this.state.documentForm;
+		const { title, description, price, isEdit } = this.state.documentForm;
 		return (
 			<Fragment>
 				<Form inverted>
 					<Form.Group>
 						<Form.Input
 							value={title}
+							name='title'
 							onChange={this.handleDocumentFormChange}
 							label='Title'
 							placeholder='Title'
@@ -83,6 +157,7 @@ class AdminPortal extends Component {
 						/>
 						<Form.Input
 							value={description}
+							name='description'
 							onChange={this.handleDocumentFormChange}
 							label='Description'
 							placeholder='Description'
@@ -91,6 +166,7 @@ class AdminPortal extends Component {
 						/>
 						<Form.Input
 							value={price}
+							name='price'
 							onChange={this.handleDocumentFormChange}
 							label='Price (Pesos)'
 							type='number'
@@ -99,9 +175,30 @@ class AdminPortal extends Component {
 							required
 						/>
 					</Form.Group>
-					<Button color='green' fluid>
-						Add Document
-					</Button>
+					<div className='document-form-buttons'>
+						<Button
+							type='submit'
+							className='document-form-accept'
+							color='green'
+							fluid
+							onClick={() => {
+								this.submitDocumentForm();
+							}}>
+							{
+								isEdit ? 'Update Document' :
+								'Add Document'}
+						</Button>
+						<Button
+							type='cancel'
+							className='document-form-cancel'
+							color='red'
+							fluid
+							onClick={() => {
+								this.cancelEdit();
+							}}>
+							Cancel
+						</Button>
+					</div>
 				</Form>
 				{this.documentListing}
 			</Fragment>
@@ -119,7 +216,7 @@ class AdminPortal extends Component {
 							<Table.HeaderCell>Title</Table.HeaderCell>
 							<Table.HeaderCell>Description</Table.HeaderCell>
 							<Table.HeaderCell>Price</Table.HeaderCell>
-							<Table.HeaderCell />
+							<Table.HeaderCell style={{ textAlign: 'center' }}>Actions</Table.HeaderCell>
 						</Table.Row>
 					</Table.Header>
 					<Table.Body>
@@ -136,8 +233,27 @@ class AdminPortal extends Component {
 											<Button
 												circular
 												icon='pencil alternate'
+												color='green'
 												onClick={() => {
-													this.editDocument(doc.doc_id);
+													this.editDocument(
+														doc.doc_id,
+														doc.title,
+														doc.description,
+														doc.price,
+													);
+												}}
+											/>
+										}
+									/>{' '}
+									<Popup
+										content='Delete Document'
+										trigger={
+											<Button
+												circular
+												icon='trash alternate'
+												color='red'
+												onClick={() => {
+													this.deleteDocument(doc.doc_id);
 												}}
 											/>
 										}
@@ -151,12 +267,13 @@ class AdminPortal extends Component {
 		);
 	}
 
-	editDocument (documentId) {
-		console.log('document id', documentId);
+	handleNewAdminFormChange = (e, { name, value }) =>
+		this.setState({ newAdminForm: { ...this.state.newAdminForm, [name]: value } });
+
+	createAdminAccount () {
+		const { name, employeeId, email, office } = this.state.newAdminForm;
+		this.props.dispatch(apiCreateAdmin(name, employeeId, email, office));
 	}
-
-	handleNewAdminFormChange = (e, { name, value }) => this.setState({ newAdminForm: { [name]: value } });
-
 	newAdminForm () {
 		const { name, employeeId, email, office } = this.state.newAdminForm;
 		return (
@@ -165,6 +282,7 @@ class AdminPortal extends Component {
 					<Form.Input
 						value={name}
 						onChange={this.handleNewAdminFormChange}
+						name='name'
 						label='Name'
 						placeholder='Name'
 						width={7}
@@ -172,6 +290,7 @@ class AdminPortal extends Component {
 					<Form.Input
 						value={employeeId}
 						onChange={this.handleNewAdminFormChange}
+						name='employeeId'
 						label='Employee ID'
 						placeholder='Employee ID'
 						width={5}
@@ -179,8 +298,10 @@ class AdminPortal extends Component {
 					<Form.Input
 						value={email}
 						onChange={this.handleNewAdminFormChange}
+						name='email'
 						label='Employee Email'
 						placeholder='Email'
+						type='email'
 						width={4}
 					/>
 				</Form.Group>
@@ -192,6 +313,7 @@ class AdminPortal extends Component {
 						<Dropdown
 							value={office}
 							onChange={this.handleNewAdminFormChange}
+							name='office'
 							placeholder='Select Office'
 							fluid
 							selection
@@ -199,7 +321,12 @@ class AdminPortal extends Component {
 						/>
 					</Container>
 				</Form.Group>
-				<Button color='green' fluid>
+				<Button
+					color='green'
+					fluid
+					onClick={() => {
+						this.createAdminAccount();
+					}}>
 					Create Account
 				</Button>
 			</Form>
@@ -211,19 +338,7 @@ class AdminPortal extends Component {
 	componentWillMount () {
 		console.log('componentWillMount');
 		this.props.dispatch(apiDocListFetch());
-		this.setState({
-			documentForm : {
-				title       : '',
-				description : '',
-				price       : '',
-			},
-			newAdminForm : {
-				name       : '',
-				employeeId : '',
-				email      : '',
-				office     : '',
-			},
-		});
+		this.reset_current_Set();
 	}
 
 	reset_current_Set = () => {
@@ -232,6 +347,8 @@ class AdminPortal extends Component {
 				title       : '',
 				description : '',
 				price       : '',
+				documentId  : -1,
+				isEdit      : false,
 			},
 			newAdminForm : {
 				name       : '',
@@ -243,7 +360,7 @@ class AdminPortal extends Component {
 	};
 
 	render () {
-		// console.log('AdminPortal props', this.props);
+		console.log('AdminPortal props', this.props);
 		return (
 			<Segment style={{ backgroundColor: 'transparent' }}>
 				<PlmunHeader />
@@ -272,6 +389,7 @@ function mapStateToProps (state){
 			...state.userDataReducers.document_listing,
 		],
 		admin_data       : { ...state.adminDataReducers.admin_data },
+		admin_api_call   : { ...state.adminDataReducers.admin_api_call },
 	};
 }
 
