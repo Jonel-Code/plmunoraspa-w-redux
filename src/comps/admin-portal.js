@@ -539,7 +539,7 @@ class AdminPortal extends Component {
 												}
 											</Popup.Content>
 										</Popup>
-										: request.date_payed
+										: request.date_payed ? request.date_payed : <p>Unpaid</p>
 									}
 																		
 								</Table.Cell>

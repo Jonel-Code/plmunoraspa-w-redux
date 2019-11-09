@@ -135,21 +135,32 @@ class StudRequest extends Component {
                 <Table.Cell>{val.description}</Table.Cell>
                 <Table.Cell>{val.dateOfRequest}</Table.Cell>
                 <Table.Cell>{val.total}</Table.Cell>
-                <Table.Cell
-                  negative={
+                <Popup
+                  trigger={
+                    <Table.Cell
+                      negative={
 
-                      !val.treasuryAccId ? true :
-                      false
-                  }
-                  positive={
+                          !val.treasuryAccId ? true :
+                          false
+                      }
+                      positive={
 
-                      val.treasuryAccId ? true :
-                      false
+                          val.treasuryAccId ? true :
+                          false
+                      }>
+                      {
+                        !val.or_number || (typeof val.or_number == 'string' && val.or_number.length === 0) ? 'Unpaid' :
+                        val.or_number}
+                    </Table.Cell>
                   }>
                   {
-                    !val.or_number || (typeof val.or_number == 'string' && val.or_number.length === 0) ? 'Unpaid' :
-                    val.or_number}
-                </Table.Cell>
+                    val.date_payed ? <p>
+                      Date Payed: <strong>{val.date_payed}</strong>
+                    </p> :
+                    <p>
+                      Please pay an exact amount of <strong>{val.total} Pesos</strong> at the registrar office
+                    </p>}
+                </Popup>
                 <Table.Cell
                   negative={
 
@@ -163,7 +174,7 @@ class StudRequest extends Component {
                   }>
                   {
                     val.registrarAccId ? 'Claimed' :
-                    'Unclaimed'}
+                    'Pending'}
                 </Table.Cell>
                 <Table.Cell>
                   <Popup
