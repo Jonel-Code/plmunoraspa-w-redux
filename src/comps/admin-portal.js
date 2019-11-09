@@ -14,6 +14,7 @@ import {
 	Button,
 	Table,
 	Popup,
+	Modal
 } from 'semantic-ui-react';
 import './admin-portal.css';
 import PlmunHeader from './header';
@@ -27,6 +28,7 @@ import {
 	apiApproveAdmin,
 	apiRemoveApproveAdmin,
 } from '../redux/actions/admin-actions';
+import swal from 'sweetalert';
 
 const office_selection = [
 	{
@@ -45,6 +47,15 @@ class AdminPortal extends Component {
 	constructor (props) {
 		super(props);
 		this.state = {
+			modalOpen:false,
+			modalOrInput:'',
+			reqIdToUpdate:'',
+			officerId: '',
+			toUpdateOrNumber: '',
+			orNumberValidation: '',
+			adminOffice: 'treasury',
+			forceRemoveUpdate:false,
+			disableRemoveClaim: false,
 			documentForm : {
 				title       : '',
 				description : '',
@@ -375,12 +386,22 @@ class AdminPortal extends Component {
 		this.setState({ requestPanel: { ...this.state.requestPanel, searchValue: value } });
 	};
 
-	handleApproveRequest (requestId, isRemoveApproval = false) {
+	handleApproveRequest () {
 		const { name, eid } = this.props.admin_data;
-		if (!isRemoveApproval) {
+		const newOr = this.state.toUpdateOrNumber;
+		const newOrValidation = this.state.orNumberValidation;
+		const requestId = this.state.reqIdToUpdate;
+		if(this.state.adminOffice !== 'treasury'){
+			if(newOr !== newOrValidation){
+				swal({icon:'error', text:'Wrong O.R. number please check and try again'});
+				return;
+			}
+		} 
+		if (!this.state.forceRemoveUpdate && newOr && newOr.length > 0) {
 			this.props.dispatch(
-				apiApproveAdmin(name, eid, requestId, () => {
+				apiApproveAdmin(name, eid, requestId, newOr, () => {
 					this.reloadStudentRequestListing(false);
+					this.handleClose();
 				}),
 			);
 		}
@@ -388,17 +409,20 @@ class AdminPortal extends Component {
 			this.props.dispatch(
 				apiRemoveApproveAdmin(name, eid, requestId, () => {
 					this.reloadStudentRequestListing(false);
+					this.handleClose();
 				}),
 			);
 		}
 	}
+	handleOpen = () => this.setState({ modalOpen: true })
 
+	handleClose = () => this.setState({ modalOpen: false, orNumberValidation: '', toUpdateOrNumber: '', forceRemoveUpdate: false})
 	get requestListing () {
 		const { requestListing } = this.props.admin_api_call;
 		const { office } = this.props.admin_data;
 		const { currentPage, searchValue } = this.state.requestPanel;
 		const isRegistrar = office === 'registrar';
-		const isTresury = office === 'treasury';
+		const istreasury = office === 'treasury';
 		const maxItemPerPage = 5;
 		const itemToShowFirstIndex = (currentPage - 1) * maxItemPerPage;
 		const searchFiltered = requestListing.filter((x) =>
@@ -444,60 +468,86 @@ class AdminPortal extends Component {
 							<Table.HeaderCell>Documents</Table.HeaderCell>
 							<Table.HeaderCell>Date Requested</Table.HeaderCell>
 							<Table.HeaderCell>Price (Pesos)</Table.HeaderCell>
-							<Table.HeaderCell>Accounting Action</Table.HeaderCell>
-							<Table.HeaderCell>Registrar Action</Table.HeaderCell>
+							<Table.HeaderCell>{
+								this.props.admin_data && this.props.admin_data.office && this.props.admin_data.office === 'treasury' 
+								? 'Accounting Action' : 'Payment Date'
+							}</Table.HeaderCell>
+							<Table.HeaderCell>{
+								this.props.admin_data && this.props.admin_data.office && this.props.admin_data.office === 'treasury' 
+								? 'Request Status' : 'Registrar Action' 
+								}</Table.HeaderCell>
 						</Table.Row>
 					</Table.Header>
 					<Table.Body>
-						{itemsToShow.map((val, i) => (
-							<Table.Row key={i}>
-								<Table.Cell>{val.requestId}</Table.Cell>
-								<Table.Cell>{val.studentId}</Table.Cell>
-								<Table.Cell>{val.description}</Table.Cell>
-								<Table.Cell>{val.dateOfRequest}</Table.Cell>
-								<Table.Cell>{val.total}</Table.Cell>
+						{itemsToShow.map((val, i) => {
+							const request = val;
+							console.log('request',request);
+							return (
+								<Table.Row key={i}>
+								<Table.Cell>{request.requestId}</Table.Cell>
+								<Table.Cell>{request.studentId}</Table.Cell>
+								<Table.Cell>{request.description}</Table.Cell>
+								<Table.Cell>{request.dateOfRequest}</Table.Cell>
+								<Table.Cell>{request.total}</Table.Cell>
 								<Table.Cell style={{ textAlign: 'center' }}>
-									<Popup
-										content={
-
-												!val.treasuryAccId ? 'Click to update the status of request' :
-												'Cannot Undo the update'
-										}
-										trigger={
-											<Button
-												negative={
-
-														val.treasuryAccId ? true :
-														false
+									{	this.props.admin_data && this.props.admin_data.office && this.props.admin_data.office === 'treasury' 
+											? <Popup
+											
+											trigger={
+												<Button
+													negative={
+														request.or_number ? true :
+															false
+													}
+													positive
+													content={ !request.or_number? 'Set O.R. Number' : 'Update O.R. Number'}													
+													onClick={()=>{
+														let toSetOr =  request.or_number ;
+														if(!toSetOr){
+															toSetOr = '';
+														}
+														// check if the item is already claimed
+														if(request.registrarAccId){
+															return;
+														}
+														this.setState(
+															{
+																officerId: request.treasuryAccId, 
+																reqIdToUpdate: request.requestId,
+																toUpdateOrNumber: toSetOr,
+																adminOffice: 'treasury'
+															},
+															()=>{
+																this.handleOpen();
+															}
+														);
+														
+													}}
+												/>
+											}
+										>
+											<Popup.Content>
+												{!request.or_number ? 
+													'No O.R. Number Please set one to approve' : 
+													<p>
+														O.R. Number: <strong>{request.or_number}</strong>
+														<br/> 
+														Payed last: <strong>{request.date_payed}</strong>
+														<br/> 
+														{request.registrarAccId ? <strong>Note: Cannot Update Claimed Requests</strong> : ''}
+													</p>
 												}
-												positive={
-
-														!val.treasuryAccId ? true :
-														false
-												}
-												circular
-												content={
-
-														val.treasuryAccId ? 'Undo Payment' :
-														'Paid'
-												}
-												disabled={
-
-														isRegistrar ? true :
-														val.registrarAccId ? true :
-														false
-												}
-												onClick={() => {
-													this.handleApproveRequest(val.requestId, val.treasuryAccId);
-												}}
-											/>
-										}
-									/>
+											</Popup.Content>
+										</Popup>
+										: request.date_payed
+									}
+																		
 								</Table.Cell>
 								<Table.Cell style={{ textAlign: 'center' }}>
-									<Popup
-										content={
-
+									{
+										this.props.admin_data && this.props.admin_data.office && this.props.admin_data.office !== 'treasury' 
+										? <Popup
+										content={											
 												!val.registrarAccId ? 'Click to update the status of request' :
 												!val.treasuryAccId ? 'Cannot Claim unpaid Requests' :
 												'Undo the update'
@@ -514,27 +564,41 @@ class AdminPortal extends Component {
 														!val.registrarAccId ? true :
 														false
 												}
-												circular
 												content={
-
-														val.registrarAccId ? 'Undo Claim' :
+														val.registrarAccId ? 'Update Claim' :
 														'Claim'
 												}
 												disabled={
-
-														isTresury ? true :
+														(!val.or_number || (typeof val.or_number === 'string' && val.or_number.length == 0)) ? true :
+														istreasury ? true :
 														val.registrarAccId ? false :
 														!val.treasuryAccId
 												}
 												onClick={() => {
-													this.handleApproveRequest(val.requestId, val.registrarAccId);
+													this.setState(
+														{
+															officerId: val.registrarAccId, 
+															reqIdToUpdate: val.requestId,
+															toUpdateOrNumber: val.or_number,
+															adminOffice: 'registrar',
+															disableRemoveClaim: !val.registrarAccId
+														},
+														()=>{
+															this.handleOpen();
+														}
+													);
 												}}
 											/>
 										}
 									/>
+									: val.registrarAccId ? 'Claimed' : 'Pending'
+									}
+									
 								</Table.Cell>
 							</Table.Row>
-						))}
+						
+							)
+						})}
 					</Table.Body>
 					<Table.Footer>
 						<Table.Row>
@@ -552,6 +616,65 @@ class AdminPortal extends Component {
 						</Table.Row>
 					</Table.Footer>
 				</Table>
+				<Modal
+					size='small'
+					open={this.state.modalOpen}
+					onClose={this.handleClose}									
+				>
+					<Modal.Header>Update Request #{this.state.reqIdToUpdate}</Modal.Header>
+					<Modal.Content >
+					
+					<Container textAlign='left'>
+						<label>O.R. Number</label>
+						<Input
+							onChange={this.handleInputSearchChange}
+							fluid
+							placeholder='New O.R. Number'
+							pattern='^[0-9]*'
+							value={ this.state.adminOffice === 'treasury' ? this.state.toUpdateOrNumber || '' : this.state.orNumberValidation || ''}
+							onChange={(event)=>{
+								if(event.target.validity.valid){
+									if( this.state.adminOffice === 'treasury'){
+										this.setState({toUpdateOrNumber: event.target.value});
+									} else {
+										this.setState({orNumberValidation: event.target.value});
+									}
+								}
+							}}
+						/>
+						<br/>
+						<Modal.Description>
+							{/* <Header>Update Request #{request.requestId}</Header> */}
+							<h5>
+								Do you want to update the request?
+							</h5>
+						</Modal.Description>
+					</Container>
+					
+					</Modal.Content>
+					<Modal.Actions>
+						{ this.state.adminOffice !== 'treasury' ? 
+						(<Button 
+							color='red' 
+							disabled={this.state.disableRemoveClaim}
+							onClick={() => {
+								this.setState({orNumberValidation: this.state.toUpdateOrNumber, forceRemoveUpdate: true}, ()=>{
+									this.handleApproveRequest();
+								})							
+							}} inverted>
+							<Icon name='checkmark' /> Remove Claim
+						</Button>) 
+						: ''}
+						&nbsp;
+						<Button color='green' onClick={() => {
+							this.setState({forceRemoveUpdate: false},()=>{
+								this.handleApproveRequest();
+							});
+							}} inverted>
+							<Icon name='checkmark' /> Update Request
+						</Button>
+					</Modal.Actions>
+				</Modal>
 			</Fragment>
 		);
 	}

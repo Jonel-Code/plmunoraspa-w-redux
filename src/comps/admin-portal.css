@@ -1,53 +1,58 @@
 .portal {
-	width: 100%;
-	height: 100%;
+  width: 100%;
+  height: 100%;
 }
 
 .column-size {
-	max-height: 80%;
+  max-height: 80%;
 }
 
 .admin-content {
-	padding: 0 !important;
-	height: 80%;
-	min-height: 500px;
-	background-color: rgba(255, 255, 255, 0.5) !important;
+  padding: 0 !important;
+  height: 80%;
+  min-height: 500px;
+  background-color: rgba(255, 255, 255, 0.5) !important;
 }
 
 .admin-bg-color {
-	background: url(".././assets/plmun_image.jpg") no-repeat !important;
-	background-size: cover !important;
+  background: url(".././assets/plmun_image.jpg") no-repeat !important;
+  background-size: cover !important;
 }
 
 .admin-header {
-	padding: 5px;
-	background-color: rgba(255, 255, 255, 0.9) !important;
+  padding: 5px;
+  background-color: rgba(255, 255, 255, 0.9) !important;
 }
 
 .blur-bg {
-	background-color: rgba(255, 255, 255, 0.5) !important;
+  background-color: rgba(255, 255, 255, 0.5) !important;
 }
 
 .main-card-admin {
-	height: 100% !important;
-	width: 100% !important;
-	min-width: 820px !important;
-	background-color: transparent !important;
+  height: 100% !important;
+  width: 100% !important;
+  min-width: 820px !important;
+  background-color: transparent !important;
 }
 
 .no-shadow {
-	box-shadow: none !important;
+  box-shadow: none !important;
 }
 
 .document-form-buttons {
-	display: flex;
-	justify-content: space-around;
-	align-items: stretch;
-	margin: 1em 0 1em 0;
+  display: flex;
+  justify-content: space-around;
+  align-items: stretch;
+  margin: 1em 0 1em 0;
 }
 .document-form-accept {
-	flex: 1 1 auto;
+  flex: 1 1 auto;
 }
 .document-form-cancel {
-	flex: .3;
+  flex: .3;
+}
+.dimmed.dimmable > .ui.animating.dimmer,
+.dimmed.dimmable > .ui.visible.dimmer,
+.ui.active.dimmer {
+  background-color: rgba(7, 7, 7, 0.38);
 }
