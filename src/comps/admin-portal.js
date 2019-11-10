@@ -55,6 +55,7 @@ class AdminPortal extends Component {
 			officerId: '',
 			toUpdateOrNumber: '',
 			orNumberValidation: '',
+			requestStudentId: '',
 			adminOffice: 'treasury',
 			forceRemoveUpdate:false,
 			disableRemoveClaim: false,
@@ -542,7 +543,8 @@ class AdminPortal extends Component {
 																officerId: request.treasuryAccId, 
 																reqIdToUpdate: request.requestId,
 																toUpdateOrNumber: toSetOr,
-																adminOffice: 'treasury'
+																adminOffice: 'treasury',
+																requestStudentId: val.studentId
 															},
 															()=>{
 																this.handleOpen();
@@ -605,7 +607,8 @@ class AdminPortal extends Component {
 																reqIdToUpdate: val.requestId,
 																toUpdateOrNumber: val.or_number,
 																adminOffice: 'registrar',
-																disableRemoveClaim: !val.registrarAccId
+																disableRemoveClaim: !val.registrarAccId,
+																requestStudentId: val.studentId
 															},
 															()=>{
 																this.handleOpen();
@@ -626,7 +629,8 @@ class AdminPortal extends Component {
 															reqIdToUpdate: val.requestId,
 															toUpdateOrNumber: val.or_number,
 															adminOffice: 'registrar',
-															notesText: val.notes || ''
+															notesText: val.notes || '',
+															requestStudentId: val.studentId
 														},
 														()=>{
 															this.handleNotesModalOpen();
@@ -670,7 +674,7 @@ class AdminPortal extends Component {
 					open={this.state.modalOpen}
 					onClose={this.handleClose}									
 				>
-					<Modal.Header>Update Request #{this.state.reqIdToUpdate}</Modal.Header>
+					<Modal.Header>Update Request #{this.state.reqIdToUpdate} for Student {this.state.requestStudentId}</Modal.Header>
 					<Modal.Content >
 					
 					<Container textAlign='left'>
@@ -730,7 +734,7 @@ class AdminPortal extends Component {
 					open={this.state.notesModalOpen}
 					onClose={this.handleNotesModalClose}									
 				>
-					<Modal.Header>Add Notes to Request #{this.state.reqIdToUpdate}</Modal.Header>
+					<Modal.Header>Add Notes to Request #{this.state.reqIdToUpdate} for Student {this.state.requestStudentId}</Modal.Header>
 					<Modal.Content >
 					
 					<Container textAlign='left'>
