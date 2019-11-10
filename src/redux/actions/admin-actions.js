@@ -8,6 +8,7 @@ import {
   ADMIN_API_CALL_GET_ALL_REQUEST,
   ADMIN_API_CALL_APPROVE_REQUEST,
   ADMIN_API_CALL_REMOVE_APPROVE_REQUEST,
+  ADMIN_API_ADD_NOTES_REQUEST,
 } from './action-types';
 import service from '../../services/base-service';
 
@@ -44,6 +45,10 @@ export function admin_api_approve_request (payload){
 
 export function admin_api_remove_approve_request (payload){
   return { type: ADMIN_API_CALL_REMOVE_APPROVE_REQUEST, payload };
+}
+
+export function admin_api_add_notes_request (payload){
+  return { type: ADMIN_API_ADD_NOTES_REQUEST, payload };
 }
 
 export function apiCreateAdmin (
@@ -204,6 +209,51 @@ export function apiRemoveApproveAdmin (
             ),
           );
           on_register_reject();
+        },
+      );
+  };
+}
+
+export function apiAddRequestNotes (
+  name,
+  employeeId,
+  requestId,
+  notes,
+  on_api_accept = () => {},
+  on_api_reject = () => {},
+){
+  return (dispatch) => {
+    dispatch(admin_api_start());
+    return service
+      .getRestClient()
+      .post('admin/add-notes', {
+        name       : name,
+        employeeId : employeeId,
+        requestId  : requestId,
+        notes      : notes,
+      })
+      .then(
+        (response) => {
+          console.log('response.data', response.data);
+          dispatch(admin_api_end({}));
+          dispatch(admin_api_add_notes_request(response.data));
+          on_api_accept();
+        },
+        (err) => {
+          console.log('err', err);
+          const showError = {
+            title   : 'Error in adding notes to Request',
+            message : 'Check the Employee Id or Request ID if valid',
+          };
+          dispatch(
+            admin_api_error(
+              { ...err.response, showError: showError } || {
+                message   : 'Server Error',
+                showError : showError,
+              },
+            ),
+          );
+          on_api_reject();
         },
       );
   };

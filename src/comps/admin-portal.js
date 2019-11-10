@@ -14,7 +14,8 @@ import {
 	Button,
 	Table,
 	Popup,
-	Modal
+	Modal,
+	TextArea
 } from 'semantic-ui-react';
 import './admin-portal.css';
 import PlmunHeader from './header';
@@ -27,6 +28,7 @@ import {
 	apiFetchAllRequest,
 	apiApproveAdmin,
 	apiRemoveApproveAdmin,
+	apiAddRequestNotes
 } from '../redux/actions/admin-actions';
 import swal from 'sweetalert';
 
@@ -56,6 +58,8 @@ class AdminPortal extends Component {
 			adminOffice: 'treasury',
 			forceRemoveUpdate:false,
 			disableRemoveClaim: false,
+			notesModalOpen: false,
+			notesText: '',
 			documentForm : {
 				title       : '',
 				description : '',
@@ -386,6 +390,10 @@ class AdminPortal extends Component {
 		this.setState({ requestPanel: { ...this.state.requestPanel, searchValue: value } });
 	};
 
+	handleInputNotesChange = (e, { value }) => {
+		this.setState({ notesText: value});
+	};
+
 	handleApproveRequest () {
 		const { name, eid } = this.props.admin_data;
 		const newOr = this.state.toUpdateOrNumber;
@@ -414,17 +422,36 @@ class AdminPortal extends Component {
 			);
 		}
 	}
-	handleOpen = () => this.setState({ modalOpen: true })
 
-	handleClose = () => this.setState({ modalOpen: false, orNumberValidation: '', toUpdateOrNumber: '', forceRemoveUpdate: false})
+	handleUpdateNotesRequest () {
+		const { name, eid } = this.props.admin_data;
+		const requestId = this.state.reqIdToUpdate;		
+		this.props.dispatch(apiAddRequestNotes(name,eid,requestId, this.state.notesText, ()=>{
+			this.reloadStudentRequestListing(false);
+			this.handleNotesModalClose();
+		}));
+	}
+
+	handleOpen = () => this.setState({ modalOpen: true });
+
+	handleClose = () => this.setState({ modalOpen: false, orNumberValidation: '', toUpdateOrNumber: '', forceRemoveUpdate: false});
+
+	handleNotesModalOpen = () => this.setState({ notesModalOpen: true });
+	
+	handleNotesModalClose = () => this.setState({ notesModalOpen: false })
+
 	get requestListing () {
-		const { requestListing } = this.props.admin_api_call;
+		let { requestListing } = this.props.admin_api_call;
+		if(!requestListing){
+			requestListing = [];
+		}
 		const { office } = this.props.admin_data;
 		const { currentPage, searchValue } = this.state.requestPanel;
 		const isRegistrar = office === 'registrar';
 		const istreasury = office === 'treasury';
 		const maxItemPerPage = 5;
 		const itemToShowFirstIndex = (currentPage - 1) * maxItemPerPage;
+		console.log('requestListing',requestListing);
 		const searchFiltered = requestListing.filter((x) =>
 			x.requestId.toLowerCase().includes(searchValue.toLowerCase()),
 		);
@@ -441,7 +468,7 @@ class AdminPortal extends Component {
 			<Fragment>
 				<Container textAlign='left'>
 					<Header as='h2' textAlign='left' inverted>
-						Student Requests
+						Student Requests ( {this.props.admin_data.office.toUpperCase()} Account )
 						<Header.Subheader />
 					</Header>
 				</Container>
@@ -481,7 +508,7 @@ class AdminPortal extends Component {
 					<Table.Body>
 						{itemsToShow.map((val, i) => {
 							const request = val;
-							console.log('request',request);
+							// console.log('request',request);
 							return (
 								<Table.Row key={i}>
 								<Table.Cell>{request.requestId}</Table.Cell>
@@ -546,34 +573,52 @@ class AdminPortal extends Component {
 								<Table.Cell style={{ textAlign: 'center' }}>
 									{
 										this.props.admin_data && this.props.admin_data.office && this.props.admin_data.office !== 'treasury' 
-										? <Popup
-										content={											
-												!val.registrarAccId ? 'Click to update the status of request' :
-												!val.treasuryAccId ? 'Cannot Claim unpaid Requests' :
-												'Undo the update'
-										}
+										? <Dropdown
 										trigger={
-											<Button
-												negative={
-
-														val.registrarAccId ? true :
-														false
+											<Button icon>
+												<Icon name='ellipsis horizontal' />
+											</Button>
+										}
+										icon={null}
+										pointing='right'
+										>
+										<Dropdown.Menu>
+										<Popup
+											content={											
+													!val.registrarAccId ? 'Click to update the status of request' :
+													!val.treasuryAccId ? 'Cannot Claim unpaid Requests' :
+													'Undo the update'
 												}
-												positive={
-
-														!val.registrarAccId ? true :
-														false
+											trigger={
+												<Dropdown.Item 
+													key={1} 
+													disabled={
+															(!val.or_number || (typeof val.or_number === 'string' && val.or_number.length == 0)) ? true :
+															istreasury ? true :
+															val.registrarAccId ? false :
+															!val.treasuryAccId
+															}
+													onClick={() => {
+														this.setState(
+															{
+																officerId: val.registrarAccId, 
+																reqIdToUpdate: val.requestId,
+																toUpdateOrNumber: val.or_number,
+																adminOffice: 'registrar',
+																disableRemoveClaim: !val.registrarAccId
+															},
+															()=>{
+																this.handleOpen();
+															}
+														);
+													}}
+												>
+													{val.registrarAccId ? 'Update Claim' : 'Claim'}
+												</Dropdown.Item>
 												}
-												content={
-														val.registrarAccId ? 'Update Claim' :
-														'Claim'
-												}
-												disabled={
-														(!val.or_number || (typeof val.or_number === 'string' && val.or_number.length == 0)) ? true :
-														istreasury ? true :
-														val.registrarAccId ? false :
-														!val.treasuryAccId
-												}
+										/>
+											<Dropdown.Item 
+												key={2} 												
 												onClick={() => {
 													this.setState(
 														{
@@ -581,16 +626,19 @@ class AdminPortal extends Component {
 															reqIdToUpdate: val.requestId,
 															toUpdateOrNumber: val.or_number,
 															adminOffice: 'registrar',
-															disableRemoveClaim: !val.registrarAccId
+															notesText: val.notes || ''
 														},
 														()=>{
-															this.handleOpen();
+															this.handleNotesModalOpen();
 														}
 													);
 												}}
-											/>
-										}
-									/>
+											>
+												Update Notes
+											</Dropdown.Item>								
+										</Dropdown.Menu>
+									</Dropdown>
+								 
 									: val.registrarAccId ? 'Claimed' : 'Pending'
 									}
 									
@@ -616,6 +664,7 @@ class AdminPortal extends Component {
 						</Table.Row>
 					</Table.Footer>
 				</Table>
+				{/* OR number modal */}
 				<Modal
 					size='small'
 					open={this.state.modalOpen}
@@ -672,6 +721,41 @@ class AdminPortal extends Component {
 							});
 							}} inverted>
 							<Icon name='checkmark' /> Update Request
+						</Button>
+					</Modal.Actions>
+				</Modal>
+				{/* Notes modal */}
+				<Modal
+					size='small'
+					open={this.state.notesModalOpen}
+					onClose={this.handleNotesModalClose}									
+				>
+					<Modal.Header>Add Notes to Request #{this.state.reqIdToUpdate}</Modal.Header>
+					<Modal.Content >
+					
+					<Container textAlign='left'>
+						<label>Request Notes:</label>
+						<Form>
+							<TextArea rows={2} placeholder='Add notes to Request'
+								value={this.state.notesText || ''}
+								onChange={this.handleInputNotesChange}
+							/>
+						</Form>						
+						<br/>
+						<Modal.Description>
+							{/* <Header>Update Request #{request.requestId}</Header> */}
+							<h5>
+								Do you want to Update the notes of the request?
+							</h5>
+						</Modal.Description>
+					</Container>
+					
+					</Modal.Content>
+					<Modal.Actions>						
+						<Button color='green' onClick={() => {
+							this.handleUpdateNotesRequest();
+							}} inverted>
+							<Icon name='checkmark' /> Update Request Notes
 						</Button>
 					</Modal.Actions>
 				</Modal>
