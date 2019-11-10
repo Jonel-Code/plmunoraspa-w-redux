@@ -174,6 +174,7 @@ class StudRequest extends Component {
                   }>
                   {
                     val.registrarAccId ? 'Claimed' :
+                    val.notes || (typeof val.notes === 'string' && val.notes.length > 0) ? val.notes :
                     'Pending'}
                 </Table.Cell>
                 <Table.Cell>
