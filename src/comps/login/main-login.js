@@ -92,7 +92,7 @@ class MainLogin extends Component {
   componentDidUpdate () {}
 
   required_fulfiled (not_test = false) {
-    if (!this.name_input || !this.id_number_input) {
+    if (!this.name_input || !this.id_number_input || this.state.fields.password.length === 0) {
       return false;
     }
     const { id_number: student_id, user_name } = this.state.fields;
